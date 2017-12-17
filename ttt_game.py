@@ -5,7 +5,10 @@ Created on: Dec 16, 2017
 '''
 import MySQLdb
 from config_helper import get_database_handle
+
 class TTTGame:
+
+    @staticmethod
     def getGameDetails(game_id=None):
 	'''
 	given a game_id retrieve its game details
@@ -17,9 +20,9 @@ class TTTGame:
 	    return None
 	try:
 	    db_handle = get_database_handle()
-	    db_cursor = db_handle.cursor(MySQLdb.dictcursor) 
+	    db_cursor = db_handle.cursor(MySQLdb.cursors.DictCursor) 
 	    status_query = '''
-SELECT * FROM ttt_game 
+SELECT * FROM ttt_games
 WHERE game_id = %(game_id)s
 ''' % {'game_id': game_id}
 	    db_cursor.execute(status_query)
@@ -31,7 +34,7 @@ WHERE game_id = %(game_id)s
 		dbi_handle.close()
 	    return row
 
-
+    @staticmethod
     def getGameDetailsByChannelId(channel_id):
         '''
         get the latest game details for a channel_id
@@ -43,19 +46,21 @@ WHERE game_id = %(game_id)s
             return None
         try:
             db_handle = get_database_handle()
-            db_cursor = db_handle.cursor(MySQLdb.dictcursor)
+            db_cursor = db_handle.cursor(MySQLdb.cursors.DictCursor)
             status_query = '''
-SELECT * FROM ttt_game 
-WHERE channel_id = %(channel_id)s
+SELECT * FROM ttt_games 
+WHERE channel_id = '%(channel_id)s'
 ORDER BY id desc
 LIMIT 1
 ''' % {'channel_id': channel_id}
             db_cursor.execute(status_query)
             row = db_cursor.fetchone()
-        finally:
+        except Exception as e:
+	    print e
+	finally:
             if db_cursor is not None:
                 db_cursor.close()
             if db_handle is not None:
-                dbi_handle.close()
+                db_handle.close()
             return row
 
