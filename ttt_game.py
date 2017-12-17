@@ -25,8 +25,8 @@ class TTTGame:
 SELECT * FROM ttt_games
 WHERE game_id = %(game_id)s
 ''' % {'game_id': game_id}
-		db_cursor.execute(status_query)
-		row = db_cursor.fetchone()
+			db_cursor.execute(status_query)
+			row = db_cursor.fetchone()
 		finally:
 			if db_cursor is not None:
 			db_cursor.close()
