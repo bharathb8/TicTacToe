@@ -13,15 +13,15 @@ class TTTGame:
 	'''
 	given a game_id retrieve its game details
 	'''
-	db_handle = None
-	db_cursor = None
-	row = None
-	if not game_id:
-		return None
-	try:
-		db_handle = get_database_handle()
-		db_cursor = db_handle.cursor(MySQLdb.cursors.DictCursor) 
-		status_query = '''
+		db_handle = None
+		db_cursor = None
+		row = None
+		if not game_id:
+			return None
+		try:
+			db_handle = get_database_handle()
+			db_cursor = db_handle.cursor(MySQLdb.cursors.DictCursor) 
+			status_query = '''
 SELECT * FROM ttt_games
 WHERE game_id = %(game_id)s
 ''' % {'game_id': game_id}
