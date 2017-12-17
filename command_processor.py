@@ -30,14 +30,14 @@ class CommandProcessor(object):
 				return
 			print "command parts %s " % command_parts
 			if command_parts[0].lower() == 'status':
-			channel_id = request_data['channel_id']
-			game_details = TTTGame.getGameDetailsByChannelId(channel_id)
-			if game_details:
-				status = game_details['status']
-			if status == 1:
-				response_msg = "Game in progress"
-			else:
-				response_msg = "No games in the channel's history."
+				channel_id = request_data['channel_id']
+				game_details = TTTGame.getGameDetailsByChannelId(channel_id)
+				if game_details:
+					status = game_details['status']
+				if status == 1:
+					response_msg = "Game in progress"
+				else:
+					response_msg = "No games in the channel's history."
 
 		except:
 			pass
