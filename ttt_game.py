@@ -10,9 +10,9 @@ class TTTGame:
 
 	@staticmethod
 	def getGameDetails(game_id=None):
-	'''
-	given a game_id retrieve its game details
-	'''
+		'''
+		given a game_id retrieve its game details
+		'''
 		db_handle = None
 		db_cursor = None
 		row = None
