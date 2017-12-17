@@ -27,12 +27,12 @@ WHERE game_id = %(game_id)s
 ''' % {'game_id': game_id}
 		db_cursor.execute(status_query)
 		row = db_cursor.fetchone()
-	finally:
-		if db_cursor is not None:
-		db_cursor.close()
-		if db_handle is not None:
-		dbi_handle.close()
-		return row
+		finally:
+			if db_cursor is not None:
+			db_cursor.close()
+			if db_handle is not None:
+			dbi_handle.close()
+			return row
 
 	@staticmethod
 	def getGameDetailsByChannelId(channel_id):
@@ -56,8 +56,8 @@ LIMIT 1
 			db_cursor.execute(status_query)
 			row = db_cursor.fetchone()
 		except Exception as e:
-		print e
-	finally:
+			print e
+		finally:
 			if db_cursor is not None:
 				db_cursor.close()
 			if db_handle is not None:
