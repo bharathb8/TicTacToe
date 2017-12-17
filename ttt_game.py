@@ -29,9 +29,9 @@ WHERE game_id = %(game_id)s
 			row = db_cursor.fetchone()
 		finally:
 			if db_cursor is not None:
-			db_cursor.close()
+				db_cursor.close()
 			if db_handle is not None:
-			dbi_handle.close()
+				db_handle.close()
 			return row
 
 	@staticmethod
