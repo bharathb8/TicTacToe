@@ -74,7 +74,7 @@ class CommandProcessor(object):
 				if game_details:
 					status = game_details['status']
 					if status == TTTGame.GAME_STATUS_IN_PROGRESS:
-						response_msg = "Game in progress."
+						response_msg = "Game in progress. %s 's turn to play" % self._getFormattedUserNameMention(game_details['current_player'])
 						game_id = game_details['id']
 						game_state = GameMove.getLatestGameState(game_id)
 						game_board = json.loads(game_state['game_board'])
@@ -94,12 +94,14 @@ class CommandProcessor(object):
 				if game_details:
 					status = game_details['status']
 					if status == TTTGame.GAME_STATUS_IN_PROGRESS:
-						response_msg = "Game in progress."
+						response_msg = "Game in progress. %s 's turn to play" % self._getFormattedUserNameMention(game_details['current_player'])
 						game_id = game_details['id']
 						game_state = GameMove.getLatestGameState(game_id)
 						game_board = json.loads(game_state['game_board'])
 						board_string = self._getPrettyPrintBoard(game_board)
 						response_msg = "%s\n\n%s" % (board_string, response_msg)
+						response_dict = {'text': response_msg, 'response_type': response_type}
+						return
 
 				player_1 = request_data['user_id']
 				player_2 = self._extractUserID(command_parts[1])
