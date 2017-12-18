@@ -4,12 +4,19 @@ Command Processor
 Created On: Dec 16, 2017
 '''
 import json
+import logging
 import os
 import sys
 
 from flask import jsonify
 from ttt_game import TTTGame
 from game_move import GameMove
+
+logging.basicConfig(filename='command_processor.log',level=logging.INFO)
+logger = logging.getLogger()
+
+consoleHandler = logging.StreamHandler()
+logger.addHandler(consoleHandler)
 
 class CommandProcessor(object):
 
@@ -56,6 +63,7 @@ class CommandProcessor(object):
 		
 			if not command_parts:
 				response_msg = self._getHelpMessage()
+				response_dict = {'text': response_msg, 'response_type': response_type}
 				return
 
 			logger.info("command parts %s " % command_parts)
@@ -67,7 +75,9 @@ class CommandProcessor(object):
 					status = game_details['status']
 					if status == TTTGame.GAME_STATUS_IN_PROGRESS:
 						response_msg = "Game in progress."
-						game_board = json.loads(game_details['game_board'])
+						game_id = game_details['id']
+						game_state = GameMove.getLatestGameState(game_id)
+						game_board = json.loads(game_state['game_board'])
 						board_string = self._getPrettyPrintBoard(game_board)
 						response_msg = "%s\n\n%s" % (board_string, response_msg)
 					elif status == TTTGame.GAME_STATUS_COMPLETED:
@@ -85,7 +95,9 @@ class CommandProcessor(object):
 					status = game_details['status']
 					if status == TTTGame.GAME_STATUS_IN_PROGRESS:
 						response_msg = "Game in progress."
-						game_board = json.loads(game_details['game_board'])
+						game_id = game_details['id']
+						game_state = GameMove.getLatestGameState(game_id)
+						game_board = json.loads(game_state['game_board'])
 						board_string = self._getPrettyPrintBoard(game_board)
 						response_msg = "%s\n\n%s" % (board_string, response_msg)
 
