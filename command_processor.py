@@ -75,15 +75,16 @@ class CommandProcessor(object):
 					return
 				game_id = self.createGame(player_1, player_2, request_data)
 				if game_id:
-					response_msg = "Game started! \n %s v/s %s. \n %s's turn to play!" % (self._getFormattedUserNameMention(player_1),
-																						  self._getFormattedUserNameMention(player_2),
-																						  self._getFormattedUserNameMention(player_1))
+					board_string = self._getPrettyPrintBoard(self._getNewGameBoard())
+					response_msg = "%s\nGame started! \n %s v/s %s. \n %s's turn to play!" % (board_string, self._getFormattedUserNameMention(player_1),
+																								self._getFormattedUserNameMention(player_2),
+																								self._getFormattedUserNameMention(player_1))
 
 			if command_parts[0].lower() == 'mark':
 				response_msg = self.makeMove(command_parts, request_data)
 
 		except:
-			pass
+			logger.error("Exception processing command. %s" % e)
 		finally:
 			response_json = {'response_type': 'in_channel',
 							 'text': response_msg}
@@ -141,6 +142,7 @@ class CommandProcessor(object):
 		boundary_row = '|---+---+---|'
 
 		pp_board = '%s\n%s\n%s\n%s\n%s' % (pp_row1, boundary_row, pp_row2, boundary_row, pp_row3)
+		return pp_board
 
 
 	def makeMove(self, command_parts, request_data):
@@ -162,8 +164,6 @@ class CommandProcessor(object):
 				response_msg = "No active games in current channel. Start a new game?"
 
 			if latest_game_details['status'] == TTTGame.GAME_STATUS_IN_PROGRESS:
-				if space_number < 1 or space_number > 9:
-					response_msg = "Not a valid space number. Please specify a number between 1 and 9."
 
 				request_user_id = request_data['user_id']
 				current_player = latest_game_details['current_player']
@@ -172,6 +172,16 @@ class CommandProcessor(object):
 
 				game_id = latest_game_details['id']
 				game_state = GameMove.getLatestGameState(game_id)
+
+				# If invalid space number is provided, display appropriate message 
+				if space_number < 1 or space_number > 9:
+					response_msg = "Not a valid space number. Please specify a number between 1 and 9."
+					if game_state:
+						game_board = json.loads(game_state['game_board'])
+						board_string = self._getPrettyPrintBoard(game_board)
+						response_msg = "%s\n\n%s" % (board_string, response_msg)
+					return
+
 				if request_user_id == current_player:
 					
 					if not game_state:
