@@ -42,17 +42,23 @@ class CommandProcessor(object):
 			return user_id
 
 	def _getFormattedUserNameMention(self, username):
+		'''
+		Format user name for mentions 
+		'''
 		formatted_username = "<@%s>" % username
 		return formatted_username
 
 	def processCommand(self, command_string="", request_data={}):
-		response_msg = "Empty msg."
+		response_msg = ""
+		response_type = "ephemeral"
 		try:
 			command_parts = self.parseCommand(command_string) 
 		
 			if not command_parts:
+				response_msg = self._getHelpMessage()
 				return
-			print "command parts %s " % command_parts
+
+			logger.info("command parts %s " % command_parts)
 
 			if command_parts[0].lower() == 'status':
 				channel_id = request_data['channel_id']
@@ -60,40 +66,71 @@ class CommandProcessor(object):
 				if game_details:
 					status = game_details['status']
 					if status == TTTGame.GAME_STATUS_IN_PROGRESS:
-						response_msg = "Game in progress"
+						response_msg = "Game in progress."
+						game_board = json.loads(game_details['game_board'])
+						board_string = self._getPrettyPrintBoard(game_board)
+						response_msg = "%s\n\n%s" % (board_string, response_msg)
 					elif status == TTTGame.GAME_STATUS_COMPLETED:
 						response_msg = "No active games currently. All games have been completed.\n Would you like to start one?"
 				else:
 					response_msg = "No games in the channel's history."
 
-			if command_parts[0].lower() == 'challenge':
-				# check no games in progress in the channel
+				response_dict = {'text': response_msg, 'response_type': response_type}
+
+			elif command_parts[0].lower() == 'challenge':
+				# check if current channel has no on-going games
+				channel_id = request_data['channel_id']
+				game_details = TTTGame.getGameDetailsByChannelId(channel_id)
+				if game_details:
+					status = game_details['status']
+					if status == TTTGame.GAME_STATUS_IN_PROGRESS:
+						response_msg = "Game in progress."
+						game_board = json.loads(game_details['game_board'])
+						board_string = self._getPrettyPrintBoard(game_board)
+						response_msg = "%s\n\n%s" % (board_string, response_msg)
+
 				player_1 = request_data['user_id']
 				player_2 = self._extractUserID(command_parts[1])
 				if player_2 and player_1 == player_2:
 					response_msg = "Please choose another player(not your self) to challenge a new game."
-					return
-				game_id = self.createGame(player_1, player_2, request_data)
-				if game_id:
-					board_string = self._getPrettyPrintBoard(self._getNewGameBoard())
-					response_msg = "%s\nGame started! \n %s v/s %s. \n %s's turn to play!" % (board_string, self._getFormattedUserNameMention(player_1),
-																								self._getFormattedUserNameMention(player_2),
-																								self._getFormattedUserNameMention(player_1))
 
-			if command_parts[0].lower() == 'mark':
-				response_msg = self.makeMove(command_parts, request_data)
+				else:
+					game_id = self.createGame(player_1, player_2, request_data)
+					if game_id:
+						board_string = self._getPrettyPrintBoard(self._getNewGameBoard())
+						response_msg = "%s\nGame started! \n %s v/s %s. \n %s's turn to play!" % (board_string, self._getFormattedUserNameMention(player_1),
+																									self._getFormattedUserNameMention(player_2),
+																									self._getFormattedUserNameMention(player_1))
 
+					response_dict = {'text': response_msg, 'response_type': 'in_channel'}
+
+
+			elif command_parts[0].lower() == 'mark':
+				response_dict = self.makeMove(command_parts, request_data)
+
+			else:
+				response_msg = self._getHelpMessage()
+				response_dict = {'text': response_msg, 'response_type': response_type}
 		except:
 			logger.error("Exception processing command. %s" % e)
 		finally:
-			response_json = {'response_type': 'in_channel',
-							 'text': response_msg}
-			return jsonify(response_json)
+			return jsonify(response_dict)
+
+	def _getHelpMessage(self):
+		help_message = '''
+```Slack Tic-Tac-Toe:
+1. /slack_ttt status - To show current status of game in the channel.
+2. /slack_ttt challenge @player_name - To start a game against @player_name.
+3. /slack_ttt mark <1-9> - To mark a spot number between 1-9 during the game.
+4. /slack_ttt help - To display this message at any time```
+'''		
+		return help_message
 
 	def createGame(self, player_1, player_2, request_data):
 		'''
 		Create a new game between Player1 and Player2
 		'''
+		game_id = None
 		try:
 			game_id = TTTGame.createGame(request_data['channel_id'], player_1, player_2)
 		except Exception as e:
@@ -151,7 +188,8 @@ class CommandProcessor(object):
 		Evaluate if it is the player's valid turn. If so, then mark the specified space.
 		Evaluate the board if we have winner and update the game state.
 		'''
-		response_msg = "Empty message from makeMove"
+		response_msg = ""
+		response_type = "in_channel"
 		game_id = None
 		game_state = None
 		try:
@@ -175,7 +213,8 @@ class CommandProcessor(object):
 
 				# If invalid space number is provided, display appropriate message 
 				if space_number < 1 or space_number > 9:
-					response_msg = "Not a valid space number. Please specify a number between 1 and 9."
+					response_msg = "Not a valid spot number. Please specify a number between 1 and 9."
+					response_type = "ephemeral"
 					if game_state:
 						game_board = json.loads(game_state['game_board'])
 						board_string = self._getPrettyPrintBoard(game_board)
@@ -197,8 +236,10 @@ class CommandProcessor(object):
 					elif request_user_id == player_2:
 						mark_character = 'O'
 
+					# if an already marked spot is specified, then display a warning
 					if game_board[space_number - 1] != '-':
-						msg = "Invalid space number."
+						msg = "That spot is already marked. Please specify a valid space."
+						response_type = "ephemeral"
 						board_string = self._getPrettyPrintBoard(game_board)
 						response_msg = '%s\n\n%s' % (board_string, msg)
 						return
@@ -216,10 +257,11 @@ class CommandProcessor(object):
 						# update who is the next player for the game.
 						next_player = player_1 if current_player == player_2 else player_2
 						TTTGame.updateGameDetails(game_id, next_player)
-						msg = "Done. %s's turn to play." % self._getFormattedUserNameMention(next_player)
+						msg = "%s's turn to play." % self._getFormattedUserNameMention(next_player)
 						response_msg = '%s\n\n%s' % (board_string, msg)
 				else:
 					response_msg = "%s 's turn to play. Please wait your turn." % self._getFormattedUserNameMention(current_player)
+					response_type = "ephemeral"
 					if game_state:
 						game_board = json.loads(game_state['game_board'])
 						board_string = self._getPrettyPrintBoard(game_board)
@@ -228,5 +270,6 @@ class CommandProcessor(object):
 		except Exception as e:
 			logger.error("Exception in make move method. %s" % e)
 		finally:
-			return response_msg
+			response_dict = {'text': response_msg, 'response_type': response_type}
+			return response_dict
 
