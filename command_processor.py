@@ -9,8 +9,8 @@ import os
 import sys
 
 from flask import jsonify
-from model.ttt_game import TTTGame
-from model.game_move import GameMove
+from ttt_game import TTTGame
+from game_move import GameMove
 
 logging.basicConfig(filename='command_processor.log',level=logging.INFO)
 logger = logging.getLogger()
