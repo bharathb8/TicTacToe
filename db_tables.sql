@@ -5,7 +5,7 @@ CREATE TABLE `ttt_games`(
 `channel_id` VARCHAR(15) NOT NULL,
 `player1_id` VARCHAR(15) NOT NULL,
 `player2_id` VARCHAR(15) NOT NULL,
-`current_turn` VARCHAR(15) NOT NULL,
+`current_player` VARCHAR(15) NOT NULL,
 `status` INT DEFAULT 1,
 `winner` VARCHAR(15) DEFAULT NULL,
 `date_created` TIMESTAMP DEFAULT 0,
