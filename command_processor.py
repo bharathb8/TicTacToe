@@ -7,6 +7,7 @@ Created On: Dec 16, 2017
 import os
 import sys
 
+from flask import jsonify
 from ttt_game import TTTGame
 
 class CommandProcessor(object):
@@ -39,6 +40,9 @@ class CommandProcessor(object):
 		finally:
 			return user_id
 
+	def _getFormattedUserNameMention(self, username):
+		formatted_username = "<@%s>" % username
+		return formatted_username
 
 	def processCommand(self, command_string="", request_data={}):
 		response_msg = "Empty msg."
@@ -59,6 +63,7 @@ class CommandProcessor(object):
 				else:
 					response_msg = "No games in the channel's history."
 			if command_parts[0].lower() == 'challenge':
+				# check no games in progress in the channel
 				player_1 = request_data['user_id']
 				player_2 = self._extractUserID(command_parts[1])
 				if player_2 and player_1 == player_2:
@@ -66,12 +71,16 @@ class CommandProcessor(object):
 					return
 				game_id = self.createGame(player_1, player_2, request_data)
 				if game_id:
-					response_msg = "Game started! \n %s V/S %s. \n %s's turn to play!" % (player_1, player_2, player_1)
+					response_msg = "Game started! \n %s V/S %s. \n %s's turn to play!" % (self._getFormattedUserNameMention(player_1),
+																						  self._getFormattedUserNameMention(player_2),
+																						  self._getFormattedUserNameMention(player_1))
 				return
 		except:
 			pass
 		finally:
-			return response_msg
+			response_json = {'response_type': 'in_channel',
+							 'text': response_msg}
+			return jsonify(response_json)
 
 	def createGame(self, player_1, player_2, request_data):
 		try:
