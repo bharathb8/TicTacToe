@@ -9,8 +9,8 @@ import os
 import sys
 
 from flask import jsonify
-from ttt_game import TTTGame
-from game_move import GameMove
+from model.ttt_game import TTTGame
+from model.game_move import GameMove
 
 logging.basicConfig(filename='command_processor.log',level=logging.INFO)
 logger = logging.getLogger()
@@ -21,6 +21,9 @@ logger.addHandler(consoleHandler)
 class CommandProcessor(object):
 
 	def parseCommand(self, command_string):
+		'''
+		given the command text string, extract the individual words 
+		'''
 		command_parts = []
 		try:
 			command_parts = command_string.split(" ")
@@ -56,6 +59,11 @@ class CommandProcessor(object):
 		return formatted_username
 
 	def processCommand(self, command_string="", request_data={}):
+		'''
+		This is the command processor function.
+		Process 'status', 'challenge', 'mark' and 'help' commands. For any other 
+		commands this will respond with help message.
+		'''
 		response_msg = ""
 		response_type = "ephemeral"
 		try:
@@ -94,7 +102,7 @@ class CommandProcessor(object):
 				if game_details:
 					status = game_details['status']
 					if status == TTTGame.GAME_STATUS_IN_PROGRESS:
-						response_msg = "Game in progress. %s 's turn to play" % self._getFormattedUserNameMention(game_details['current_player'])
+						response_msg = "Sorry, a game is already in progress. %s 's turn to play" % self._getFormattedUserNameMention(game_details['current_player'])
 						game_id = game_details['id']
 						game_state = GameMove.getLatestGameState(game_id)
 						game_board = json.loads(game_state['game_board'])
@@ -105,10 +113,12 @@ class CommandProcessor(object):
 
 				player_1 = request_data['user_id']
 				player_2 = self._extractUserID(command_parts[1])
-				if player_2 and player_1 == player_2:
-					response_msg = "Please choose another player(not your self) to challenge a new game."
+				# check if the player did not specify his own name to start a new game
+				if (player_2 and player_1 == player_2) or (player_2 == 'USLACKBOT'):
+					response_msg = "Please choose another player(except yourself and Slack Bot) to challenge a new game."
 
 				else:
+					# now we are good to start a new game between two players.
 					game_id = self.createGame(player_1, player_2, request_data)
 					if game_id:
 						board_string = self._getPrettyPrintBoard(self._getNewGameBoard())
@@ -129,6 +139,7 @@ class CommandProcessor(object):
 			logger.error("Exception processing command. %s" % e)
 		finally:
 			return jsonify(response_dict)
+
 
 	def _getHelpMessage(self):
 		help_message = '''
@@ -160,7 +171,7 @@ class CommandProcessor(object):
 
 	def _evaluateGameBoard(self, board):
 		'''
-		Given the current board, evaluate if we have  winner
+		Given the current board, evaluate if we have a winner
 		'''
 		# check for row matches
 		if (board[0] != '-' and (board[0] == board[1] == board[2])) or \
@@ -198,8 +209,9 @@ class CommandProcessor(object):
 
 	def makeMove(self, command_parts, request_data):
 		'''
-		Process Move. 
-		Evaluate if it is the player's valid turn. If so, then mark the specified space.
+		Process Mark command by the player. 
+		Evaluate if it is the player's valid turn. 
+		If so, then mark the specified space.
 		Evaluate the board if we have winner and update the game state.
 		'''
 		response_msg = ""
@@ -214,6 +226,7 @@ class CommandProcessor(object):
 			latest_game_details = TTTGame.getGameDetailsByChannelId(channel_id)
 			if not latest_game_details or latest_game_details['status'] == TTTGame.GAME_STATUS_COMPLETED:
 				response_msg = "No active games in current channel. Start a new game?"
+				response_type = "ephemeral"
 
 			if latest_game_details['status'] == TTTGame.GAME_STATUS_IN_PROGRESS:
 
