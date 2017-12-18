@@ -10,7 +10,7 @@ from config_helper import get_database_handle
 
 class GameMove(object):
 
-	@staticMethod
+	@staticmethod
 	def addMove(game_id, player_id, move_num, game_board):
 		'''
 		Add a game move to the given game_id made by the specified player_id
@@ -40,7 +40,7 @@ VALUES
 				db_handle.close()
 			return ret_status
 
-	@staticMethod
+	@staticmethod
 	def getLatestGameState(game_id):
 		'''
 		Add a game move to the given game_id made by the specified player_id
