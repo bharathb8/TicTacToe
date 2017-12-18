@@ -53,7 +53,7 @@ class CommandProcessor(object):
 			if not command_parts:
 				return
 			print "command parts %s " % command_parts
-			import pdb;pdb.set_trace()
+
 			if command_parts[0].lower() == 'status':
 				channel_id = request_data['channel_id']
 				game_details = TTTGame.getGameDetailsByChannelId(channel_id)
@@ -75,7 +75,7 @@ class CommandProcessor(object):
 					return
 				game_id = self.createGame(player_1, player_2, request_data)
 				if game_id:
-					response_msg = "Game started! \n %s V/S %s. \n %s's turn to play!" % (self._getFormattedUserNameMention(player_1),
+					response_msg = "Game started! \n %s v/s %s. \n %s's turn to play!" % (self._getFormattedUserNameMention(player_1),
 																						  self._getFormattedUserNameMention(player_2),
 																						  self._getFormattedUserNameMention(player_1))
 
@@ -131,6 +131,17 @@ class CommandProcessor(object):
 
 		return False
 
+	def _getPrettyPrintBoard(self, game_board):
+		'''
+		get pretty print version of the given board
+		'''
+		pp_row1 = '| ' + ' | '.join(game_board[0:3]) + ' |'
+		pp_row2 = '| ' + ' | '.join(game_board[3:6]) + ' |'
+		pp_row3 = '| ' + ' | '.join(game_board[6:])  + ' |'
+		boundary_row = '|---+---+---|'
+
+		pp_board = '%s\n%s\n%s\n%s\n%s' % (pp_row1, boundary_row, pp_row2, boundary_row, pp_row3)
+
 
 	def makeMove(self, command_parts, request_data):
 		'''
@@ -139,6 +150,8 @@ class CommandProcessor(object):
 		Evaluate the board if we have winner and update the game state.
 		'''
 		response_msg = "Empty message from makeMove"
+		game_id = None
+		game_state = None
 		try:
 			channel_id = request_data['channel_id']
 			space_number = int(command_parts[1])
@@ -157,9 +170,10 @@ class CommandProcessor(object):
 				player_1 = latest_game_details['player1_id']
 				player_2 = latest_game_details['player2_id']
 
+				game_id = latest_game_details['id']
+				game_state = GameMove.getLatestGameState(game_id)
 				if request_user_id == current_player:
-					game_id = latest_game_details['id']
-					game_state = GameMove.getLatestGameState(game_id)
+					
 					if not game_state:
 						# this means its a new game and no moves have been made yet.
 						game_board = self._getNewGameBoard()
@@ -173,22 +187,33 @@ class CommandProcessor(object):
 					elif request_user_id == player_2:
 						mark_character = 'O'
 
+					if game_board[space_number - 1] != '-':
+						msg = "Invalid space number."
+						board_string = self._getPrettyPrintBoard(game_board)
+						response_msg = '%s\n\n%s' % (board_string, msg)
+						return
+
 					game_board[space_number - 1] = mark_character
 					GameMove.addMove(game_id, current_player, move_num, game_board)
+					board_string = self._getPrettyPrintBoard(game_board)
 					# Check if the current move finishes the game.
 					if self._evaluateGameBoard(game_board):
 						# update the game state to complete
 						TTTGame.updateGameAsCompleted(game_id, current_player)
-						response_msg = "%s wins the game!" % self._getFormattedUserNameMention(current_player)
-
+						msg = "Game over! %s wins the game!" % self._getFormattedUserNameMention(current_player)
+						response_msg = "%s\n\n%s" % (board_string, msg)
 					else:
 						# update who is the next player for the game.
 						next_player = player_1 if current_player == player_2 else player_2
 						TTTGame.updateGameDetails(game_id, next_player)
-						response_msg = "Done. %s's turn to play." % self._getFormattedUserNameMention(next_player)
-
+						msg = "Done. %s's turn to play." % self._getFormattedUserNameMention(next_player)
+						response_msg = '%s\n\n%s' % (board_string, msg)
 				else:
 					response_msg = "%s 's turn to play. Please wait your turn." % self._getFormattedUserNameMention(current_player)
+					if game_state:
+						game_board = json.loads(game_state['game_board'])
+						board_string = self._getPrettyPrintBoard(game_board)
+						response_msg = "%s\n\n%s" % (board_string, response_msg)
 
 		except Exception as e:
 			logger.error("Exception in make move method. %s" % e)
