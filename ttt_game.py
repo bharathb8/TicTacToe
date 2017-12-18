@@ -1,5 +1,5 @@
 '''
-TicTacToe Game class definition
+TTTGame model definition
 
 Created on: Dec 16, 2017
 '''
@@ -23,7 +23,7 @@ class TTTGame(object):
 			return None
 		try:
 			db_handle = get_database_handle()
-			db_cursor = db_handle.cursor(MySQLdb.cursors.DictCursor) 
+			db_cursor = db_handle.cursor(MySQLdb.cursors.DictCursor)
 			status_query = '''
 SELECT * FROM ttt_games
 WHERE game_id = %(game_id)s
@@ -83,6 +83,7 @@ INSERT INTO ttt_games
 VALUES
 ('%s', '%s', '%s', '%s', %s, %s)
 			''' % (channel_id, player_1, player_2, player_1, TTTGame.GAME_STATUS_IN_PROGRESS, 'now()')
+
 			db_cursor = db_handle.cursor(MySQLdb.cursors.DictCursor)
 			db_cursor.execute(create_query)
 			created_game_id = db_cursor.lastrowid
@@ -91,15 +92,69 @@ VALUES
 			print "Exception: %s" % e
 		finally:
 			if db_cursor is not None:
-					db_cursor.close()
+				db_cursor.close()
 			if db_handle is not None:
-					db_handle.close()
+				db_handle.close()
 			return created_game_id
 
 
+	@staticmethod
+	def updateGameDetails(game_id, current_player):
+		'''
+		Update game details by game ID. 
+		'''
+		db_handle = None
+		db_cursor = None
+		ret_status = True
+		try:
+			db_handle = get_database_handle()
+			update_query = '''
+UPDATE ttt_games
+SET current_player='%s'
+where id = %s''' % (current_player, game_id)
+			
+			db_cursor = db_handle.cursor(MySQLdb.cursors.DictCursor)
+			db_cursor.execute(update_query)
+			db_handle.commit()
+
+		except Exception as e:
+			print e
+			ret_status = False
+		finally:
+			if db_cursor is not None:
+				db_cursor.close()
+			if db_handle is not None:
+				db_handle.close()
+			return ret_status
 
 
+	@staticmethod
+	def updateGameAsCompleted(game_id, winner):
+		'''
+		Update winner and status for given game ID
+		'''
+		db_handle = None
+		db_cursor = None
+		ret_status = True
+		try:
+			db_handle = get_database_handle()
+			update_query = '''
+UPDATE ttt_games
+SET winner='%s', status=%s
+where id = %s''' % (winner, TTTGame.GAME_STATUS_COMPLETED, game_id)
 
+			db_cursor = db_handle.cursor(MySQLdb.cursors.DictCursor)
+			db_cursor.execute(update_query)
+			db_handle.commit()
+		except Exception as e:
+			print e
+			ret_status = False
+		finally:
+			if db_cursor is not None:
+				db_cursor.close()
+			if db_handle is not None:
+				db_handle.close()
+			return ret_status
 
 
 
