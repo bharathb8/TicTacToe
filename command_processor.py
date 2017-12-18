@@ -141,7 +141,7 @@ class CommandProcessor(object):
 		pp_row3 = '| ' + ' | '.join(game_board[6:])  + ' |'
 		boundary_row = '|---+---+---|'
 
-		pp_board = '%s\n%s\n%s\n%s\n%s' % (pp_row1, boundary_row, pp_row2, boundary_row, pp_row3)
+		pp_board = '```%s\n%s\n%s\n%s\n%s```' % (pp_row1, boundary_row, pp_row2, boundary_row, pp_row3)
 		return pp_board
 
 
