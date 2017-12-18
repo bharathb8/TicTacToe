@@ -116,7 +116,7 @@ class CommandProcessor(object):
 				# check if the player did not specify his own name to start a new game
 				if (player_2 and player_1 == player_2) or (player_2 == 'USLACKBOT'):
 					response_msg = "Please choose another player(except yourself and Slack Bot) to challenge a new game."
-
+					response_dict = {'text': response_msg, 'response_type': response_type}
 				else:
 					# now we are good to start a new game between two players.
 					game_id = self.createGame(player_1, player_2, request_data)
