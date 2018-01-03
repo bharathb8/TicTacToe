@@ -20,18 +20,6 @@ logger.addHandler(consoleHandler)
 
 class CommandProcessor(object):
 
-	def parseCommand(self, command_string):
-		'''
-		given the command text string, extract the individual words 
-		'''
-		command_parts = []
-		try:
-			command_parts = command_string.split(" ")
-		except:
-			logger.error("Exception while parsing command string.")
-		finally:
-			return command_parts
-
 	def _extractUserID(self, unfurledUserName):
 		'''
 		Given unfurled username mentions from text message, extract the user ID from it.
@@ -57,6 +45,83 @@ class CommandProcessor(object):
 		'''
 		formatted_username = "<@%s>" % username
 		return formatted_username
+	def _getHelpMessage(self):
+		help_message = '''
+```Slack Tic-Tac-Toe:
+1. /slack_ttt help - To display this message at any time
+2. /slack_ttt status - To show current status of game in the channel.
+3. /slack_ttt challenge @player_name - To start a game against @player_name.
+4. /slack_ttt mark <1-9> - To mark a spot number between 1-9 during the game.
+5. /slack_ttt abandon - To abandon current game. Only participants can abandon.```
+'''
+		return help_message
+
+	def createGame(self, player_1, player_2, request_data):
+		'''
+		Create a new game between Player1 and Player2
+		'''
+		game_id = None
+		try:
+			game_id = TTTGame.createGame(request_data['channel_id'], player_1, player_2)
+		except Exception as e:
+			logger.error("Exception while creating game %s" % e)
+		finally:
+			return game_id
+
+	def _getNewGameBoard(self):
+		'''
+		Generate an empty starting TTT game board
+		'''
+		return ['-' for _ in range(9)]
+
+	def _evaluateGameBoard(self, board):
+		'''
+		Given the current board, evaluate if we have a winner
+		'''
+		# check for row matches
+		if (board[0] != '-' and (board[0] == board[1] == board[2])) or \
+			(board[3] != '-' and (board[3] == board[4] == board[5])) or \
+			(board[6] != '-' and (board[6] == board[7] == board[8])):
+			return True
+		# check for column matches
+		if (board[0] != '-' and (board[0] == board[3] == board[6])) or \
+			(board[1] != '-' and (board[1] == board[4] == board[7])) or \
+			(board[2] != '-' and (board[2] == board[5] == board[8])):
+			return True
+
+		# check left diagonal
+		if board[0] != '-' and (board[0] == board[4] == board[8]):
+			return True
+
+		# check right diagonal
+		if board[2] != '-' and (board[2] == board[4] == board[6]):
+			return True
+
+		return False
+
+	def _getPrettyPrintBoard(self, game_board):
+		'''
+		get pretty print version of the given board
+		'''
+		pp_row1 = '| ' + ' | '.join(game_board[0:3]) + ' |'
+		pp_row2 = '| ' + ' | '.join(game_board[3:6]) + ' |'
+		pp_row3 = '| ' + ' | '.join(game_board[6:])  + ' |'
+		boundary_row = '|---+---+---|'
+
+		pp_board = '```%s\n%s\n%s\n%s\n%s```' % (pp_row1, boundary_row, pp_row2, boundary_row, pp_row3)
+		return pp_board
+
+	def parseCommand(self, command_string):
+		'''
+		given the command text string, extract the individual words
+		'''
+		command_parts = []
+		try:
+			command_parts = command_string.split(" ")
+		except:
+			logger.error("Exception while parsing command string.")
+		finally:
+			return command_parts
 
 	def processCommand(self, command_string="", request_data={}):
 		'''
@@ -148,7 +213,10 @@ class CommandProcessor(object):
 							game_id = game_details['id']
 							TTTGame.updateGameAsCompleted(game_id, TTTGame.GAME_STATUS_ABANDONED)
 							game_state = GameMove.getLatestGameState(game_id)
-							game_board = json.loads(game_state['game_board'])
+							if game_state:
+								game_board = json.loads(game_state['game_board'])
+							else:
+								game_board = self._getNewGameBoard()
 							board_string = self._getPrettyPrintBoard(game_board)
 							response_msg = "%s\n\n%s" % (board_string, "Game abandoned by %s ." % self._getFormattedUserNameMention(current_user))
 							response_type = "in_channel"
@@ -162,71 +230,6 @@ class CommandProcessor(object):
 		finally:
 			return jsonify(response_dict)
 
-
-	def _getHelpMessage(self):
-		help_message = '''
-```Slack Tic-Tac-Toe:
-1. /slack_ttt status - To show current status of game in the channel.
-2. /slack_ttt challenge @player_name - To start a game against @player_name.
-3. /slack_ttt mark <1-9> - To mark a spot number between 1-9 during the game.
-4. /slack_ttt help - To display this message at any time```
-'''		
-		return help_message
-
-	def createGame(self, player_1, player_2, request_data):
-		'''
-		Create a new game between Player1 and Player2
-		'''
-		game_id = None
-		try:
-			game_id = TTTGame.createGame(request_data['channel_id'], player_1, player_2)
-		except Exception as e:
-			logger.error("Exception while creating game %s" % e)
-		finally:
-			return game_id
-
-	def _getNewGameBoard(self):
-		'''
-		Generate an empty starting TTT game board
-		'''
-		return ['-' for _ in range(9)]
-
-	def _evaluateGameBoard(self, board):
-		'''
-		Given the current board, evaluate if we have a winner
-		'''
-		# check for row matches
-		if (board[0] != '-' and (board[0] == board[1] == board[2])) or \
-			(board[3] != '-' and (board[3] == board[4] == board[5])) or \
-			(board[6] != '-' and (board[6] == board[7] == board[8])):
-			return True
-		# check for column matches
-		if (board[0] != '-' and (board[0] == board[3] == board[6])) or \
-			(board[1] != '-' and (board[1] == board[4] == board[7])) or \
-			(board[2] != '-' and (board[2] == board[5] == board[8])):
-			return True
-
-		# check left diagonal
-		if board[0] != '-' and (board[0] == board[4] == board[8]):
-			return True
-
-		# check right diagonal
-		if board[2] != '-' and (board[2] == board[4] == board[6]):
-			return True
-
-		return False
-
-	def _getPrettyPrintBoard(self, game_board):
-		'''
-		get pretty print version of the given board
-		'''
-		pp_row1 = '| ' + ' | '.join(game_board[0:3]) + ' |'
-		pp_row2 = '| ' + ' | '.join(game_board[3:6]) + ' |'
-		pp_row3 = '| ' + ' | '.join(game_board[6:])  + ' |'
-		boundary_row = '|---+---+---|'
-
-		pp_board = '```%s\n%s\n%s\n%s\n%s```' % (pp_row1, boundary_row, pp_row2, boundary_row, pp_row3)
-		return pp_board
 
 
 	def makeMove(self, command_parts, request_data):
