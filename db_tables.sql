@@ -1,3 +1,7 @@
+-- create database slack;
+-- create user slack_user;
+-- grant all on slack.* to 'slack_user'@'localhost' identified by 'slack_password';
+
  -- create necessary game tables
 DROP TABLE IF EXISTS `ttt_games`;
 CREATE TABLE `ttt_games`(

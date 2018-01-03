@@ -48,7 +48,7 @@ class CommandProcessor(object):
 	def _getHelpMessage(self):
 		help_message = '''
 ```Slack Tic-Tac-Toe:
-1. /slack_ttt help - To display this message at any time
+1. /slack_ttt help - To display this message at any time.
 2. /slack_ttt status - To show current status of game in the channel.
 3. /slack_ttt challenge @player_name - To start a game against @player_name.
 4. /slack_ttt mark <1-9> - To mark a spot number between 1-9 during the game.
@@ -290,7 +290,7 @@ class CommandProcessor(object):
 
 					# if an already marked spot is specified, then display a warning
 					if game_board[space_number - 1] != '-':
-						msg = "That spot is already marked. Please specify a valid space."
+						msg = "That spot is already marked. Please specify a valid spot."
 						response_type = "ephemeral"
 						board_string = self._getPrettyPrintBoard(game_board)
 						response_msg = '%s\n\n%s' % (board_string, msg)
@@ -308,7 +308,7 @@ class CommandProcessor(object):
 					elif move_num == 9:
 						# if we reached move number 9 without a winner then its a draw.
 						TTTGame.updateGameAsCompleted(game_id, TTTGame.GAME_STATUS_COMPLETED)
-						msg = "Game drawn! " % self._getFormattedUserNameMention(current_player)
+						msg = "Game drawn!"
 						response_msg = "%s\n\n%s" % (board_string, msg)
 					else:
 						# update who is the next player for the game.
