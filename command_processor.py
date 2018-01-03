@@ -133,12 +133,26 @@ class CommandProcessor(object):
 				response_dict = self.makeMove(command_parts, request_data)
 
 			elif command_parts[0].lower() == 'abandon':
-				response_dict = self.makeMove(command_parts, request_data)
 				# check if current channel has no on-going games
+				response_msg = self._getHelpMessage()
 				channel_id = request_data['channel_id']
 				game_details = TTTGame.getGameDetailsByChannelId(channel_id)
-				if game_details and game_details['status'] != TTTGame.GAME_STATUS_IN_PROGRESS:
-					response_msg = "No active games currently. No game to abandon.\n Would you like to start one?"
+				if game_details:
+					if game_details['status'] != TTTGame.GAME_STATUS_IN_PROGRESS:
+						response_msg = "No active games currently. No game to abandon.\n Would you like to start a new 	one?"
+					else:
+						current_user = request_data['user_id']
+						if current_user != game_details['player1_id'] and current_user != game_details['player2_id']:
+							response_msg = "Sorry, you are not a player of the current game. You cannot abandon this game."
+						else:
+							TTTGame.updateGameAsCompleted(game_id, TTTGame.GAME_STATUS_ABANDONED)
+							game_id = game_details['id']
+							game_state = GameMove.getLatestGameState(game_id)
+							game_board = json.loads(game_state['game_board'])
+							board_string = self._getPrettyPrintBoard(game_board)
+							response_msg = "%s\n\n%s" % (board_string, "Game abandoned by %s ." % self._getFormattedUserNameMention(current_user))
+							response_type = "in_channel"
+
 				response_dict = {'text': response_msg, 'response_type': response_type}
 			else:
 				response_msg = self._getHelpMessage()
@@ -290,7 +304,7 @@ class CommandProcessor(object):
 						response_msg = "%s\n\n%s" % (board_string, msg)
 					elif move_num == 9:
 						# if we reached move number 9 without a winner then its a draw.
-						TTTGame.updateGameAsCompleted(game_id, current_player)
+						TTTGame.updateGameAsCompleted(game_id, TTTGame.GAME_STATUS_COMPLETED)
 						msg = "Game drawn! " % self._getFormattedUserNameMention(current_player)
 						response_msg = "%s\n\n%s" % (board_string, msg)
 					else:

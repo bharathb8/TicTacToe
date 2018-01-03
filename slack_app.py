@@ -27,12 +27,10 @@ app = Flask(__name__)
 def processRequest():
 	try:
 		form_data_dict = request.form
-		logger.info("request user_id : %s" % form_data_dict)
 		logger.info("request team_id : %s" % form_data_dict['team_id'])
 		cmdProcessor = CommandProcessor()
 		response = cmdProcessor.processCommand(form_data_dict['text'], form_data_dict)
 		return response
-		#return "Hello From Flask!" + " request data: %s " % form_data_dict 
 	except:
 		return "Oops, could not process request."
 
