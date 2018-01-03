@@ -132,6 +132,14 @@ class CommandProcessor(object):
 			elif command_parts[0].lower() == 'mark':
 				response_dict = self.makeMove(command_parts, request_data)
 
+			elif command_parts[0].lower() == 'abandon':
+				response_dict = self.makeMove(command_parts, request_data)
+				# check if current channel has no on-going games
+				channel_id = request_data['channel_id']
+				game_details = TTTGame.getGameDetailsByChannelId(channel_id)
+				if game_details and game_details['status'] != TTTGame.GAME_STATUS_IN_PROGRESS:
+					response_msg = "No active games currently. No game to abandon.\n Would you like to start one?"
+				response_dict = {'text': response_msg, 'response_type': response_type}
 			else:
 				response_msg = self._getHelpMessage()
 				response_dict = {'text': response_msg, 'response_type': response_type}
@@ -277,8 +285,13 @@ class CommandProcessor(object):
 					# Check if the current move finishes the game.
 					if self._evaluateGameBoard(game_board):
 						# update the game state to complete
-						TTTGame.updateGameAsCompleted(game_id, current_player)
+						TTTGame.updateGameAsCompletedWithWinner(game_id, current_player)
 						msg = "Game over! %s wins the game!" % self._getFormattedUserNameMention(current_player)
+						response_msg = "%s\n\n%s" % (board_string, msg)
+					elif move_num == 9:
+						# if we reached move number 9 without a winner then its a draw.
+						TTTGame.updateGameAsCompleted(game_id, current_player)
+						msg = "Game drawn! " % self._getFormattedUserNameMention(current_player)
 						response_msg = "%s\n\n%s" % (board_string, msg)
 					else:
 						# update who is the next player for the game.

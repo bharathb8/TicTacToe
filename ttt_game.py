@@ -10,6 +10,7 @@ class TTTGame(object):
 
 	GAME_STATUS_IN_PROGRESS = 1
 	GAME_STATUS_COMPLETED = 2
+	GAME_STATUS_ABORTED = 3
 
 	@staticmethod
 	def getGameDetails(game_id=None):
@@ -129,7 +130,7 @@ where id = %s''' % (current_player, game_id)
 
 
 	@staticmethod
-	def updateGameAsCompleted(game_id, winner):
+	def updateGameAsCompletedWithWinner(game_id, winner):
 		'''
 		Update winner and status for given game ID
 		'''
@@ -142,6 +143,34 @@ where id = %s''' % (current_player, game_id)
 UPDATE ttt_games
 SET winner='%s', status=%s
 where id = %s''' % (winner, TTTGame.GAME_STATUS_COMPLETED, game_id)
+
+			db_cursor = db_handle.cursor(MySQLdb.cursors.DictCursor)
+			db_cursor.execute(update_query)
+			db_handle.commit()
+		except Exception as e:
+			print e
+			ret_status = False
+		finally:
+			if db_cursor is not None:
+				db_cursor.close()
+			if db_handle is not None:
+				db_handle.close()
+			return ret_status
+
+	@staticmethod
+	def updateGameAsCompleted(game_id):
+		'''
+		Update status for given game ID in case of draw
+		'''
+		db_handle = None
+		db_cursor = None
+		ret_status = True
+		try:
+			db_handle = get_database_handle()
+			update_query = '''
+UPDATE ttt_games
+SET status=%s
+where id = %s''' % (TTTGame.GAME_STATUS_COMPLETED, game_id)
 
 			db_cursor = db_handle.cursor(MySQLdb.cursors.DictCursor)
 			db_cursor.execute(update_query)
