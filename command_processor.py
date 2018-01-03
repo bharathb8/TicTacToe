@@ -88,7 +88,7 @@ class CommandProcessor(object):
 						game_board = json.loads(game_state['game_board'])
 						board_string = self._getPrettyPrintBoard(game_board)
 						response_msg = "%s\n\n%s" % (board_string, response_msg)
-					elif status == TTTGame.GAME_STATUS_COMPLETED:
+					elif status in [TTTGame.GAME_STATUS_COMPLETED, TTTGame.GAME_STATUS_ABANDONED]:
 						response_msg = "No active games currently. All games have been completed.\n Would you like to start one?"
 				else:
 					response_msg = "No games in the channel's history."
@@ -139,14 +139,14 @@ class CommandProcessor(object):
 				game_details = TTTGame.getGameDetailsByChannelId(channel_id)
 				if game_details:
 					if game_details['status'] != TTTGame.GAME_STATUS_IN_PROGRESS:
-						response_msg = "No active games currently. No game to abandon.\n Would you like to start a new 	one?"
+						response_msg = "No active games currently. No game to abandon.\n Would you like to start a new one?"
 					else:
 						current_user = request_data['user_id']
 						if current_user != game_details['player1_id'] and current_user != game_details['player2_id']:
 							response_msg = "Sorry, you are not a player of the current game. You cannot abandon this game."
 						else:
-							TTTGame.updateGameAsCompleted(game_id, TTTGame.GAME_STATUS_ABANDONED)
 							game_id = game_details['id']
+							TTTGame.updateGameAsCompleted(game_id, TTTGame.GAME_STATUS_ABANDONED)
 							game_state = GameMove.getLatestGameState(game_id)
 							game_board = json.loads(game_state['game_board'])
 							board_string = self._getPrettyPrintBoard(game_board)
