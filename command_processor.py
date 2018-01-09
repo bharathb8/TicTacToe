@@ -150,7 +150,10 @@ class CommandProcessor(object):
 						response_msg = "Game in progress. %s 's turn to play" % self._getFormattedUserNameMention(game_details['current_player'])
 						game_id = game_details['id']
 						game_state = GameMove.getLatestGameState(game_id)
-						game_board = json.loads(game_state['game_board'])
+						if game_state:
+							game_board = json.loads(game_state['game_board'])
+						else:
+							game_board = self._getNewGameBoard()
 						board_string = self._getPrettyPrintBoard(game_board)
 						response_msg = "%s\n\n%s" % (board_string, response_msg)
 					elif status in [TTTGame.GAME_STATUS_COMPLETED, TTTGame.GAME_STATUS_ABANDONED]:
@@ -245,7 +248,41 @@ class CommandProcessor(object):
 		game_state = None
 		try:
 			channel_id = request_data['channel_id']
-			space_number = int(command_parts[1])
+
+			# get the active game for the channel 
+			latest_game_details = TTTGame.getGameDetailsByChannelId(channel_id)
+			game_id = latest_game_details['id']
+			game_state = GameMove.getLatestGameState(game_id)
+
+			if len(command_parts) < 2:
+				response_msg = "Please specify a number between 1 and 9 to mark. /slack_ttt mark <1-9>"
+				response_type = "ephemeral"
+				if game_state:
+					game_board = json.loads(game_state['game_board'])
+					board_string = self._getPrettyPrintBoard(game_board)
+					response_msg = "%s\n\n%s" % (board_string, response_msg)
+				return
+
+			space_num = command_parts[1]
+			if len(space_num) > 1:
+				response_msg = "Please specify a number between 1 and 9 to mark. /slack_ttt mark <1-9>"
+				response_type = "ephemeral"
+				if game_state:
+					game_board = json.loads(game_state['game_board'])
+					board_string = self._getPrettyPrintBoard(game_board)
+					response_msg = "%s\n\n%s" % (board_string, response_msg)
+				return
+
+			try:
+				space_number = int(command_parts[1])
+			except:
+				response_msg = "Please specify a number between 1 and 9 to mark. /slack_ttt mark <1-9>"
+				response_type = "ephemeral"
+				if game_state:
+					game_board = json.loads(game_state['game_board'])
+					board_string = self._getPrettyPrintBoard(game_board)
+					response_msg = "%s\n\n%s" % (board_string, response_msg)
+				return
 
 			# get the active game for the channel 
 			latest_game_details = TTTGame.getGameDetailsByChannelId(channel_id)
